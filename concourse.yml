@@ -68,21 +68,14 @@ instance_groups:
         port: (( grab meta.riemann_emitter.port ))
         health: true
 
-- name: worker
+- &worker
+  name: worker
   instances: 1
   resource_pool: workers
   networks: [{name: concourse}]
-  jobs:
+  jobs: &worker-jobs
   - release: concourse
     name: groundcrew
-    properties:
-      additional_resource_types:
-      - type: slack-notification
-        image: docker:///cfcommunity/slack-notification-resource
-      - type: cg-common
-        image: docker:///18fgsa/cg-common-resource
-      - type: 18f-bosh-deployment
-        image: docker:///18fgsa/bosh-deployment-resource
   - release: concourse
     name: baggageclaim
     properties: {}
@@ -103,6 +96,13 @@ instance_groups:
         host: (( grab meta.riemann_emitter.host ))
         port: (( grab meta.riemann_emitter.port ))
         health: true
+- <<: *worker
+  name: iaas-worker
+  resource_pool: iaas-workers
+  properties:
+    tags:
+    - iaas
+
 
 resource_pools:
 - name: web
@@ -118,7 +118,8 @@ resource_pools:
       type: gp2
       encrypted: true
 
-- name: workers
+- &workers
+  name: workers
   network: concourse
   stemcell: *stemcell
   cloud_properties:
@@ -128,6 +129,9 @@ resource_pools:
       size: 300000
       type: gp2
       encrypted: true
+
+- <<: *workers
+  name: iaas-workers
 
 compilation:
   workers: 3
